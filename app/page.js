@@ -27,7 +27,7 @@ import {
   Check          // Icône Succès
 } from 'lucide-react';
 
-// --- DONNÉES DU BLOG (Inchangées) ---
+// --- DONNÉES SIMULÉES DU BLOG (Inchangées) ---
 const BLOG_CONTENT = {
   windows_defender: {
     title: "Comment paramétrer Windows Defender pour se passer d'un antivirus tiers ?",
@@ -184,6 +184,24 @@ const Portfolio = () => {
   const [activeArticle, setActiveArticle] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
 
+  // --- NOUVEAU : Détection de l'URL au chargement (Deep Linking) ---
+  useEffect(() => {
+    // Vérifie s'il y a un paramètre ?post=... dans l'URL
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const postParam = params.get('post');
+      
+      // Si le paramètre existe et correspond à un article, on l'ouvre
+      if (postParam && BLOG_CONTENT[postParam]) {
+        setActiveArticle(postParam);
+        
+        // Optionnel : Scroller jusqu'à la section blog en arrière-plan
+        const blogSection = document.getElementById('blog');
+        if(blogSection) blogSection.scrollIntoView();
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -193,7 +211,6 @@ const Portfolio = () => {
   }, []);
 
   // Bloquer le scroll du body quand un modal ou le MENU MOBILE est ouvert
-  // Ajout d'une fonction de nettoyage pour réactiver le scroll si le composant est démonté
   useEffect(() => {
     if (activeArticle || activeVideo || isMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -206,9 +223,20 @@ const Portfolio = () => {
     };
   }, [activeArticle, activeVideo, isMenuOpen]);
 
+  // Reset état copie quand on change d'article
   useEffect(() => {
     setIsCopied(false);
   }, [activeArticle]);
+
+  // Fonction pour fermer un article et nettoyer l'URL
+  const closeArticle = () => {
+    setActiveArticle(null);
+    // Nettoyer l'URL sans recharger la page (supprime ?post=...)
+    if (typeof window !== 'undefined') {
+      const newUrl = window.location.pathname;
+      window.history.pushState({}, '', newUrl);
+    }
+  };
 
   const scrollToSection = (id) => {
     setIsMenuOpen(false);
@@ -223,8 +251,12 @@ const Portfolio = () => {
     if (!activeArticle) return;
     
     const article = BLOG_CONTENT[activeArticle];
-    const url = typeof window !== 'undefined' ? window.location.href : '';
-    const textToShare = `${article.title}\n\nDécouvre cet article ici : ${url}`;
+    
+    // --- NOUVEAU : Construction de l'URL spécifique ---
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
+    const shareUrl = `${baseUrl}?post=${activeArticle}`;
+    
+    const textToShare = `${article.title}\n\nDécouvre cet article ici : ${shareUrl}`;
 
     // Fallback copy
     const copyToClipboardFallback = () => {
@@ -264,7 +296,7 @@ const Portfolio = () => {
         await navigator.share({
           title: article.title,
           text: `Découvre cet article : ${article.title}`,
-          url: url
+          url: shareUrl 
         });
         return; 
       } catch (err) {
@@ -279,8 +311,9 @@ const Portfolio = () => {
     <button
       onClick={() => scrollToSection(id)}
       className={`text-sm font-medium transition-colors duration-300 hover:text-blue-400 ${
-        activeSection === id ? 'text-blue-400' : 'text-slate-400'
-      } ${isMobile ? 'text-lg py-2' : ''}`}
+        // MODIFICATION : Texte plus clair sur mobile pour éviter l'effet "transparent"
+        activeSection === id ? 'text-blue-400' : (isMobile ? 'text-white' : 'text-slate-400')
+      } ${isMobile ? 'text-xl py-3 font-semibold' : ''}`}
     >
       {label}
     </button>
@@ -301,7 +334,7 @@ const Portfolio = () => {
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center shadow-lg shadow-blue-900/50">
               <span className="font-mono font-bold text-white">D</span>
             </div>
-            <span className="font-bold text-lg tracking-tight text-white">David<span className="text-blue-500">  .TIENDREBEOGO</span></span>
+            <span className="font-bold text-lg tracking-tight text-white">David<span className="text-blue-500">.TIENDREBEOGO</span></span>
           </div>
 
           {/* Desktop Nav */}
@@ -325,7 +358,8 @@ const Portfolio = () => {
 
         {/* Mobile Nav Overlay (Optimized Fixed) */}
         <div 
-          className={`md:hidden fixed inset-0 bg-slate-950/98 backdrop-blur-xl z-40 transition-all duration-300 flex flex-col justify-center items-center ${
+          // MODIFICATION : Suppression de l'opacité (bg-slate-950/98 -> bg-slate-950) pour un fond solide
+          className={`md:hidden fixed inset-0 bg-slate-950 backdrop-blur-xl z-40 transition-all duration-300 flex flex-col justify-center items-center ${
             isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
           }`}
         >
@@ -370,15 +404,15 @@ const Portfolio = () => {
               </div>
               
               <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-[1.1] mb-6 tracking-tight text-balance">
-                Architecte de Réseaux <br />
+                Architecte d'infrastructures <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                  Programmables & Intelligents.
+                  Robustes & Sécurisées.
                 </span>
               </h1>
               
               <p className="text-base sm:text-lg md:text-xl text-slate-400 mb-8 max-w-2xl leading-relaxed text-balance">
                 J'aide les entreprises et les particuliers à concevoir, déployer et sécuriser leurs réseaux critiques. 
-                Spécialiste en haute disponibilité, cloud hybride et optimisation de bande passante. Je conçois aussi des sites web Full-Stack modernes.
+                Spécialiste en haute disponibilité, cloud hybride et optimisation de bande passante.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -519,7 +553,6 @@ const Portfolio = () => {
         {/* --- PROJECTS SECTION --- */}
         <section id="projects" className="py-16 md:py-24 px-4 sm:px-6">
           <div className="max-w-7xl mx-auto">
-            {/* MODIFIÉ : Titre centré + Lien centré ou ajusté */}
             <div className="flex flex-col items-center text-center mb-10 md:mb-12 gap-4">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">PROJETS RÉCENTS</h2>
@@ -651,7 +684,7 @@ const Portfolio = () => {
                       Mon setup réseau GNS3 et matériel Cisco pour préparer les certifications.
                     </p>
                     <div className="mt-auto flex items-center text-emerald-400 text-xs sm:text-sm font-medium">
-                      Vidéo Indisponible <ExternalLink size={14} className="ml-2" />
+                      Voir la vidéo <ExternalLink size={14} className="ml-2" />
                     </div>
                   </div>
                 </div>
@@ -704,7 +737,7 @@ const Portfolio = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full">
-              <a href="mailto:mrdavid@gmail.com" className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-all w-full sm:w-auto justify-center shadow-lg shadow-blue-900/20 active:scale-95 duration-100">
+              <a href="mailto:david@email.com" className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-all w-full sm:w-auto justify-center shadow-lg shadow-blue-900/20 active:scale-95 duration-100">
                 <Mail size={20} />
                 mrdavid@gmail.com
               </a>
@@ -769,7 +802,7 @@ const Portfolio = () => {
       {activeArticle && BLOG_CONTENT[activeArticle] && (
         <div 
           className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setActiveArticle(null)}
+          onClick={closeArticle} // Utilise la fonction closeArticle pour nettoyer l'URL
         >
           <div 
             className="relative w-full max-w-3xl h-[85dvh] sm:h-[80vh] bg-slate-900 sm:rounded-2xl rounded-t-2xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300"
@@ -779,7 +812,7 @@ const Portfolio = () => {
             <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900 sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => setActiveArticle(null)}
+                  onClick={closeArticle}
                   className="sm:hidden text-slate-400 hover:text-white p-1"
                 >
                   <ChevronLeft size={24} />
@@ -792,7 +825,7 @@ const Portfolio = () => {
                 </span>
               </div>
               <button 
-                onClick={() => setActiveArticle(null)} 
+                onClick={closeArticle} 
                 className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-full transition-colors"
               >
                 <X size={20} />
