@@ -27,7 +27,7 @@ import {
   Check          // Icône Succès
 } from 'lucide-react';
 
-// --- DONNÉES SIMULÉES DU BLOG (Inchangées) ---
+// --- DONNÉES DU BLOG (Inchangées) ---
 const BLOG_CONTENT = {
   windows_defender: {
     title: "Comment paramétrer Windows Defender pour se passer d'un antivirus tiers ?",
@@ -211,6 +211,7 @@ const Portfolio = () => {
   }, []);
 
   // Bloquer le scroll du body quand un modal ou le MENU MOBILE est ouvert
+  // Ajout d'une fonction de nettoyage pour réactiver le scroll si le composant est démonté
   useEffect(() => {
     if (activeArticle || activeVideo || isMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -223,7 +224,6 @@ const Portfolio = () => {
     };
   }, [activeArticle, activeVideo, isMenuOpen]);
 
-  // Reset état copie quand on change d'article
   useEffect(() => {
     setIsCopied(false);
   }, [activeArticle]);
@@ -307,17 +307,30 @@ const Portfolio = () => {
     copyToClipboardFallback();
   };
 
-  const NavLink = ({ id, label, isMobile = false }) => (
-    <button
-      onClick={() => scrollToSection(id)}
-      className={`text-sm font-medium transition-colors duration-300 hover:text-blue-400 ${
-        // MODIFICATION : Texte plus clair sur mobile pour éviter l'effet "transparent"
-        activeSection === id ? 'text-blue-400' : (isMobile ? 'text-white' : 'text-slate-400')
-      } ${isMobile ? 'text-xl py-3 font-semibold' : ''}`}
-    >
-      {label}
-    </button>
-  );
+  const NavLink = ({ id, label, isMobile = false }) => {
+    // Calcul des classes CSS pour garantir la lisibilité
+    // Sur mobile, on force le texte en blanc et plus grand
+    const baseClasses = "font-medium transition-colors duration-300";
+    const mobileClasses = isMobile 
+      ? "text-2xl text-white py-4 font-bold tracking-wide" 
+      : "text-sm text-slate-400 hover:text-blue-400";
+    
+    const activeClasses = activeSection === id 
+      ? "text-blue-400" 
+      : "";
+
+    // Si c'est mobile, activeClasses ne doit pas écraser la taille/gras, juste la couleur si besoin
+    // Mais on préfère garder blanc sur mobile pour la clarté, sauf si actif
+    
+    return (
+      <button
+        onClick={() => scrollToSection(id)}
+        className={`${baseClasses} ${mobileClasses} ${!isMobile && activeSection === id ? 'text-blue-400' : ''}`}
+      >
+        {label}
+      </button>
+    );
+  };
 
   return (
     // Utilisation de min-h-[100dvh] pour supporter les barres mobiles dynamiques
@@ -326,7 +339,11 @@ const Portfolio = () => {
       {/* --- HEADER --- */}
       <header 
         className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${
-          scrolled || isMenuOpen ? 'bg-slate-950/90 backdrop-blur-md border-slate-800 py-3' : 'bg-transparent border-transparent py-5'
+          // MODIFICATION : Si le menu est ouvert, fond 100% opaque (bg-slate-950) pour éviter la transparence
+          // Sinon, comportement normal au scroll
+          isMenuOpen 
+            ? 'bg-slate-950 border-slate-800 py-3' 
+            : (scrolled ? 'bg-slate-950/90 backdrop-blur-md border-slate-800 py-3' : 'bg-transparent border-transparent py-5')
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
@@ -348,33 +365,33 @@ const Portfolio = () => {
 
           {/* Mobile Menu Toggle */}
           <button 
-            className="md:hidden text-slate-300 p-2 z-50 focus:outline-none bg-slate-900/50 rounded-md hover:bg-slate-800 transition-colors"
+            className="md:hidden text-slate-300 p-2 z-50 focus:outline-none rounded-md hover:bg-slate-800 transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Menu"
           >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
         {/* Mobile Nav Overlay (Optimized Fixed) */}
         <div 
-          // MODIFICATION : Suppression de l'opacité (bg-slate-950/98 -> bg-slate-950) pour un fond solide
-          className={`md:hidden fixed inset-0 bg-slate-950 backdrop-blur-xl z-40 transition-all duration-300 flex flex-col justify-center items-center ${
+          // MODIFICATION : bg-slate-950 solide (pas de /98 ou blur) pour une opacité totale
+          className={`md:hidden fixed inset-0 bg-slate-950 z-40 transition-all duration-300 flex flex-col justify-center items-center ${
             isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
           }`}
         >
-          <div className="flex flex-col gap-8 p-8 text-center w-full max-w-sm">
+          <div className="flex flex-col gap-6 p-8 text-center w-full max-w-sm">
             <NavLink id="about" label="À Propos" isMobile />
             <NavLink id="skills" label="Compétences" isMobile />
             <NavLink id="projects" label="Projets" isMobile />
             <NavLink id="blog" label="Blog" isMobile />
             <NavLink id="contact" label="Contact" isMobile />
             
-            <div className="h-px w-20 bg-slate-800 mx-auto my-4"></div>
+            <div className="h-px w-20 bg-slate-800 mx-auto my-6"></div>
             
             <button 
               onClick={() => setIsMenuOpen(false)}
-              className="text-slate-500 text-sm mt-4 flex items-center justify-center gap-2 hover:text-white"
+              className="text-slate-500 text-base mt-2 flex items-center justify-center gap-2 hover:text-white transition-colors"
             >
               Fermer le menu
             </button>
